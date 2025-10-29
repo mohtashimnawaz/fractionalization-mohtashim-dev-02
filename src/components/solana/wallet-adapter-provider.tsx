@@ -3,6 +3,8 @@
 import React, { useMemo } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
+import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
+import { clusterApiUrl } from '@solana/web3.js';
 
 // Import wallet adapter CSS
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -14,11 +16,10 @@ interface WalletAdapterProviderProps {
 /**
  * Standard Solana Wallet Adapter Provider
  * Provides wallet connection and transaction signing capabilities
- * Uses auto-detection of installed wallets via Wallet Standard
  */
 export function WalletAdapterProvider({ children }: WalletAdapterProviderProps) {
   // Get Helius RPC endpoint from server (keeps API key secure)
-  const [endpoint, setEndpoint] = React.useState('https://api.devnet.solana.com');
+  const [endpoint, setEndpoint] = React.useState(clusterApiUrl('devnet'));
 
   React.useEffect(() => {
     fetch('/api/helius-rpc-url')
@@ -33,10 +34,12 @@ export function WalletAdapterProvider({ children }: WalletAdapterProviderProps) 
       });
   }, []);
 
-  // Use empty array to let Wallet Standard auto-detect installed wallets
-  // This works better with modern Phantom and other standard-compliant wallets
+  // Configure wallet adapters explicitly for better production support
   const wallets = useMemo(
-    () => [],
+    () => [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+    ],
     []
   );
 
