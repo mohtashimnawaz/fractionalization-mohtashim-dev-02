@@ -4,14 +4,14 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useWallet as useWalletAdapter } from '@solana/wallet-adapter-react';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useMintCNFT } from '@/hooks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, Wallet } from 'lucide-react';
 
 interface MintCNFTFormProps {
   onSuccess?: () => void;
@@ -19,6 +19,7 @@ interface MintCNFTFormProps {
 
 export function MintCNFTForm({ onSuccess }: MintCNFTFormProps) {
   const walletAdapter = useWalletAdapter();
+  const { setVisible } = useWalletModal();
   const mintCNFT = useMintCNFT();
   
   const [mintForm, setMintForm] = useState({
@@ -27,6 +28,10 @@ export function MintCNFTForm({ onSuccess }: MintCNFTFormProps) {
     description: '',
     imageUrl: '',
   });
+
+  const handleWalletConnect = useCallback(() => {
+    setVisible(true);
+  }, [setVisible]);
 
   const handleMintCNFT = async () => {
     if (!mintForm.name || !mintForm.symbol) {
@@ -64,7 +69,14 @@ export function MintCNFTForm({ onSuccess }: MintCNFTFormProps) {
           <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-3">
             Please connect your wallet using Phantom or Solflare to mint cNFTs.
           </p>
-          <WalletMultiButton className="!bg-primary !text-primary-foreground hover:!bg-primary/90 !h-10 !text-sm !w-full" />
+          <Button 
+            onClick={handleWalletConnect}
+            className="w-full gap-2"
+            variant="default"
+          >
+            <Wallet className="h-4 w-4" />
+            Connect Wallet
+          </Button>
         </div>
       )}
       <div className="space-y-2">
