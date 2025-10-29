@@ -5,7 +5,7 @@
 'use client';
 
 import { useVaultDetails, useUserBalance } from '@/hooks';
-import { useWallet } from '@/components/solana/solana-provider';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,10 +25,11 @@ const statusColors: Record<VaultStatus, string> = {
 };
 
 export function VaultDetails({ vaultId }: VaultDetailsProps) {
-  const { account } = useWallet();
+  const { publicKey } = useWallet();
+  const walletAddress = publicKey?.toBase58();
   const { data: vault, isLoading, error } = useVaultDetails(vaultId);
   const { data: balance } = useUserBalance(
-    account?.address,
+    walletAddress,
     vault?.fractionalMint
   );
 
@@ -158,7 +159,7 @@ export function VaultDetails({ vaultId }: VaultDetailsProps) {
           </Card>
 
           {/* User Position */}
-          {account && balance && (
+          {publicKey && balance && (
             <Card>
               <CardHeader>
                 <CardTitle>Your Position</CardTitle>

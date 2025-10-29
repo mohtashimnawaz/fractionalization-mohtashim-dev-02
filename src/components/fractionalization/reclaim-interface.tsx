@@ -6,7 +6,7 @@
 
 import { useState } from 'react';
 import { useVaults, useReclaim, useUserBalance } from '@/hooks';
-import { useWallet } from '@/components/solana/solana-provider';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -16,14 +16,15 @@ import { VaultStatus } from '@/types';
 const RECLAIM_THRESHOLD = 0.8; // 80% threshold
 
 export function ReclaimInterface({ initialVaultId }: { initialVaultId?: string } = {}) {
-  const { account } = useWallet();
+  const { publicKey } = useWallet();
+  const walletAddress = publicKey?.toBase58();
   const { data: vaults, isLoading: vaultsLoading } = useVaults();
   const { mutate: reclaim, isPending } = useReclaim();
   const [selectedVaultId, setSelectedVaultId] = useState<string>(initialVaultId || '');
 
   const selectedVault = vaults?.find((v) => v.id === selectedVaultId);
   const { data: balance } = useUserBalance(
-    account?.address,
+    walletAddress,
     selectedVault?.fractionalMint
   );
 
@@ -43,7 +44,7 @@ export function ReclaimInterface({ initialVaultId }: { initialVaultId?: string }
     });
   };
 
-  if (!account) {
+  if (!publicKey) {
     return (
       <Card className="max-w-4xl mx-auto">
         <CardContent className="pt-6">

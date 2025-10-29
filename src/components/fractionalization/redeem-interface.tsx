@@ -6,7 +6,7 @@
 
 import { useState } from 'react';
 import { useVaults, useRedeem, useUserBalance } from '@/hooks';
-import { useWallet } from '@/components/solana/solana-provider';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,8 @@ import Image from 'next/image';
 import { VaultStatus } from '@/types';
 
 export function RedeemInterface({ initialVaultId }: { initialVaultId?: string } = {}) {
-  const { account } = useWallet();
+  const { publicKey } = useWallet();
+  const walletAddress = publicKey?.toBase58();
   const { data: vaults, isLoading: vaultsLoading } = useVaults();
   const { mutate: redeem, isPending } = useRedeem();
   const [selectedVaultId, setSelectedVaultId] = useState<string>(initialVaultId || '');
@@ -24,7 +25,7 @@ export function RedeemInterface({ initialVaultId }: { initialVaultId?: string } 
 
   const selectedVault = vaults?.find((v) => v.id === selectedVaultId);
   const { data: balance } = useUserBalance(
-    account?.address,
+    walletAddress,
     selectedVault?.fractionalMint
   );
 
@@ -42,7 +43,7 @@ export function RedeemInterface({ initialVaultId }: { initialVaultId?: string } 
     });
   };
 
-  if (!account) {
+  if (!publicKey) {
     return (
       <Card className="max-w-4xl mx-auto">
         <CardContent className="pt-6">

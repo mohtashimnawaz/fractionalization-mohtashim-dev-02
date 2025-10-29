@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { useUserCNFTs } from '@/hooks';
-import { useWallet } from '@/components/solana/solana-provider';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { useFractionalizationStore } from '@/stores';
 import { FractionalizationStep } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -19,8 +19,9 @@ import Image from 'next/image';
 import { MintCNFTForm } from './mint-cnft-form';
 
 export function SelectNFTStep() {
-  const { account } = useWallet();
-  const { data: nfts, isLoading, error, refetch } = useUserCNFTs(account?.address);
+  const { publicKey } = useWallet();
+  const walletAddress = publicKey?.toBase58();
+  const { data: nfts, isLoading, error, refetch } = useUserCNFTs(walletAddress);
   const { formData, updateFormData, setStep } = useFractionalizationStore();
   
   const [isMintDialogOpen, setIsMintDialogOpen] = useState(false);
@@ -39,7 +40,7 @@ export function SelectNFTStep() {
     }, 3000);
   };
 
-  if (!account) {
+  if (!publicKey) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground mb-4">
@@ -126,7 +127,7 @@ export function SelectNFTStep() {
               Your Compressed NFTs
             </h3>
             <p className="text-sm text-purple-700 dark:text-purple-300 mt-1">
-              Wallet: {account?.address ? `${account.address.slice(0, 4)}...${account.address.slice(-4)}` : 'Not connected'}
+              Wallet: {walletAddress ? `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}` : 'Not connected'}
             </p>
           </div>
           <div className="text-right">
