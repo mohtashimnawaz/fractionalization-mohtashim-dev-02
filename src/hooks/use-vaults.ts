@@ -4,14 +4,16 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { PublicKey } from '@solana/web3.js';
+import { PublicKey, Connection } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
 import { Vault, VaultStatus } from '@/types';
 
 /**
  * Fetch all vaults from the program
  */
-const fetchVaults = async (connection: any, walletPubkey?: PublicKey): Promise<Vault[]> => {
+const fetchVaults = async (
+  connection: Connection
+): Promise<Vault[]> => {
   try {
     const programId = process.env.NEXT_PUBLIC_FRACTIONALIZATION_PROGRAM_ID;
     if (!programId) {
@@ -22,28 +24,19 @@ const fetchVaults = async (connection: any, walletPubkey?: PublicKey): Promise<V
     console.log('🔍 Fetching vaults from program:', programId);
 
     // Get all vault accounts from the program
-    // Filter by discriminator to only get vault accounts
-    // The discriminator is the first 8 bytes of the account data
-    // We need to calculate it based on the account name "Vault"
-    const vaultDiscriminator = Buffer.from([
-      // This needs to match your program's Vault account discriminator
-      // Typically calculated from: anchor.BorshAccountsCoder.accountDiscriminator("Vault")
-      // For now, we'll fetch all and filter by size
-    ]);
-
     // First fetch ALL accounts to see their sizes
     const allAccounts = await connection.getProgramAccounts(
       new PublicKey(programId)
     );
 
     console.log('📦 Found total program accounts:', allAccounts.length);
-    
+
     if (allAccounts.length > 0) {
       // Log all unique account sizes
-      const sizes = allAccounts.map((a: any) => a.account.data.length);
-      const uniqueSizes = Array.from(new Set(sizes)).sort((a: any, b: any) => a - b);
+      const sizes = allAccounts.map((a) => a.account.data.length);
+      const uniqueSizes = Array.from(new Set(sizes)).sort((a, b) => a - b);
       console.log('📊 Unique account sizes found:', uniqueSizes.join(', '));
-      
+
       // Count accounts per size
       const sizeCounts: Record<number, number> = {};
       sizes.forEach((size: number) => {
@@ -53,7 +46,7 @@ const fetchVaults = async (connection: any, walletPubkey?: PublicKey): Promise<V
     }
 
     // Filter for vault accounts (197 bytes based on actual data)
-    const vaultAccounts = allAccounts.filter((a: any) => {
+    const vaultAccounts = allAccounts.filter((a) => {
       const size = a.account.data.length;
       return size === 197;
     });
@@ -61,7 +54,8 @@ const fetchVaults = async (connection: any, walletPubkey?: PublicKey): Promise<V
     console.log('📦 Found vault accounts (197 bytes):', vaultAccounts.length);
 
     // Parse vault accounts into Vault objects
-    const vaults: Vault[] = vaultAccounts.map((account: any) => {
+    const vaults: Vault[] = vaultAccounts
+      .map((account) => {
       try {
         const data = account.account.data;
         
@@ -144,7 +138,8 @@ const fetchVaults = async (connection: any, walletPubkey?: PublicKey): Promise<V
         console.error('Error parsing vault account:', account.pubkey?.toBase58(), err);
         return null;
       }
-    }).filter((v: Vault | null): v is Vault => v !== null);
+    })
+      .filter((v: Vault | null): v is Vault => v !== null);
 
     console.log(`✅ Successfully parsed ${vaults.length} vaults`);
 
@@ -210,7 +205,7 @@ export const useVaults = () => {
 
   return useQuery({
     queryKey: ['vaults', publicKey?.toBase58()],
-    queryFn: () => fetchVaults(connection, publicKey || undefined),
+    queryFn: () => fetchVaults(connection),
     enabled: !!connection,
     staleTime: 30000, // 30 seconds
     refetchInterval: 60000, // Refetch every minute
@@ -227,7 +222,7 @@ export const useVaultsByStatus = (status?: VaultStatus) => {
   return useQuery({
     queryKey: ['vaults', status, publicKey?.toBase58()],
     queryFn: async () => {
-      const vaults = await fetchVaults(connection, publicKey || undefined);
+      const vaults = await fetchVaults(connection);
       return status ? vaults.filter((v) => v.status === status) : vaults;
     },
     enabled: !!connection,

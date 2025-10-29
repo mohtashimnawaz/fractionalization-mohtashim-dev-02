@@ -8,8 +8,8 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { useWallet } from '@/components/solana/solana-provider';
-import { useWallet as useWalletAdapter, useConnection } from '@solana/wallet-adapter-react';
+import { useConnection } from '@solana/wallet-adapter-react';
+import { useWallet as useWalletAdapter } from '@solana/wallet-adapter-react';
 import { Connection } from '@solana/web3.js';
 import type { WalletContextState } from '@solana/wallet-adapter-react';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
@@ -192,7 +192,6 @@ async function mintWithHeliusAPI(
 }
 
 export const useMintCNFT = () => {
-  const { account } = useWallet();
   const walletAdapter = useWalletAdapter();
   const { connection } = useConnection();
   const queryClient = useQueryClient();
@@ -216,26 +215,24 @@ export const useMintCNFT = () => {
         return await mintWithExistingTree(params, connection, walletAdapter);
       } else {
         // Mode 2: Use Helius API (fallback)
-        if (!account?.address) {
+        if (!walletAdapter.publicKey) {
           throw new Error('Wallet not connected');
         }
 
         console.log('⚡ Using Helius Mint API - no signature required');
-        return await mintWithHeliusAPI(params, account.address);
+        return await mintWithHeliusAPI(
+          params,
+          walletAdapter.publicKey.toBase58()
+        );
       }
     },
     onSuccess: (data) => {
-      if (useExistingTree) {
-        toast.success('🎉 cNFT Minted Successfully!', {
-          description: 'You signed and paid for this transaction. Note: Using mock metadata URI for testing.',
-          duration: 6000,
-        });
-      } else {
-        toast.success('Compressed NFT Minted!', {
-          description: `Asset ID: ${data.assetId.substring(0, 8)}...`,
-          duration: 5000,
-        });
-      }
+      toast.success('🎉 cNFT Minted Successfully!', {
+        description: useExistingTree
+          ? 'You signed and paid for this transaction. Note: Using mock metadata URI for testing.'
+          : `Asset ID: ${data.assetId.substring(0, 8)}...`,
+        duration: useExistingTree ? 6000 : 5000,
+      });
 
       // Wait for Helius indexing before refetching
       setTimeout(() => {

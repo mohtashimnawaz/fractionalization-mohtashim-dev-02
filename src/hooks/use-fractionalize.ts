@@ -26,8 +26,7 @@ interface FractionalizeParams {
  * 4. User signs and sends
  */
 const fractionalizeCompressedNFT = async (
-  params: FractionalizeParams,
-  walletAddress: string
+  params: FractionalizeParams
 ): Promise<string> => {
   try {
     // Step 1: Fetch Merkle proof from Helius
@@ -46,7 +45,7 @@ const fractionalizeCompressedNFT = async (
 
     // Step 2: Convert proof to PublicKey array for remaining_accounts
     const proofAccounts = proofToAccounts(proof);
-    const treePublicKey = new PublicKey(proof.tree_id);
+    new PublicKey(proof.tree_id);
 
     console.log('Proof accounts:', proofAccounts.length);
 
@@ -118,10 +117,7 @@ export const useFractionalize = () => {
         throw new Error('Wallet not connected');
       }
 
-      return fractionalizeCompressedNFT(
-        params,
-        wallet.account.address
-      );
+      return fractionalizeCompressedNFT(params);
     },
     onSuccess: (signature: string) => {
       toast.success('Compressed NFT fractionalized successfully! 🎉', {

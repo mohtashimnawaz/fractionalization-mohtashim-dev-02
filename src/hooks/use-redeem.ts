@@ -18,7 +18,8 @@ interface ReclaimParams {
  * Redeem fractional tokens for the underlying NFT
  * TODO: Replace with actual on-chain transaction when program is deployed
  */
-const redeemTokens = async (_params: RedeemParams): Promise<string> => {
+const redeemTokens = async (params: RedeemParams): Promise<string> => {
+  console.log('Redeem params:', params);
   // Throw error to prevent accidental use before implementation
   throw new Error('Redeem functionality not yet implemented. Deploy Anchor program first.');
 };
@@ -27,7 +28,8 @@ const redeemTokens = async (_params: RedeemParams): Promise<string> => {
  * Reclaim NFT from vault (for vault authority)
  * TODO: Replace with actual on-chain transaction when program is deployed
  */
-const reclaimNFT = async (_params: ReclaimParams): Promise<string> => {
+const reclaimNFT = async (params: ReclaimParams): Promise<string> => {
+  console.log('Reclaim params:', params);
   // Throw error to prevent accidental use before implementation
   throw new Error('Reclaim functionality not yet implemented. Deploy Anchor program first.');
 };

@@ -2,8 +2,6 @@
  * Vault-related type definitions for the fractionalization protocol
  */
 
-import { PublicKey } from '@solana/web3.js';
-
 /**
  * Status of a vault in the fractionalization protocol
  */

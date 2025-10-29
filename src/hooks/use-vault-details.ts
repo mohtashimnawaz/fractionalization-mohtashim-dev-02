@@ -9,7 +9,8 @@ import { Vault } from '@/types';
  * Fetch a single vault by ID
  * TODO: Replace with actual on-chain call when program is deployed
  */
-const fetchVaultById = async (_id: string): Promise<Vault | null> => {
+const fetchVaultById = async (id: string): Promise<Vault | null> => {
+  console.log('Fetching vault:', id);
   // No mock data - will be replaced with real on-chain vault fetching
   console.warn('⚠️ useVaultDetails: Mock data removed. Implement real vault fetching when program is deployed.');
   return null;

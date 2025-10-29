@@ -18,12 +18,11 @@ import {
   SystemProgram,
 } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
-import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from '@solana/spl-token';
-import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
-import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
-import { mplBubblegum, getAssetWithProof } from '@metaplex-foundation/mpl-bubblegum';
-import { dasApi } from '@metaplex-foundation/digital-asset-standard-api';
-import { publicKey as umiPublicKey } from '@metaplex-foundation/umi';
+import {
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddressSync,
+} from '@solana/spl-token';
 import type { FractionalizeParams } from '@/types';
 
 // Import IDL directly - Next.js compatible
@@ -234,11 +233,11 @@ export function useFractionalizeCNFT() {
 
         const provider = new anchor.AnchorProvider(
           connection,
-          anchorWallet as any,
+          anchorWallet as anchor.Wallet,
           { commitment: 'confirmed' }
         );
         const program = new anchor.Program(
-          fractionalizationIdl as any,
+          fractionalizationIdl as anchor.Idl,
           provider
         );
 
@@ -264,44 +263,69 @@ export function useFractionalizeCNFT() {
         });
 
         // Build proof accounts
-        console.log('📋 Proof data type:', typeof assetWithProof.proof, 'isArray:', Array.isArray(assetWithProof.proof));
-        
+        console.log(
+          '📋 Proof data type:',
+          typeof assetWithProof.proof,
+          'isArray:',
+          Array.isArray(assetWithProof.proof)
+        );
+
         if (!Array.isArray(assetWithProof.proof)) {
-          throw new Error(`Invalid proof format: expected array, got ${typeof assetWithProof.proof}`);
+          throw new Error(
+            `Invalid proof format: expected array, got ${typeof assetWithProof.proof}`
+          );
         }
-        
+
         console.log('🌳 Full proof length:', assetWithProof.proof.length);
-        
+
         // Limit proof accounts to reduce transaction size
         // The canopy depth typically allows us to use fewer proof nodes
         // With the new metadata account and string args, we need even fewer proof nodes
         // For a tree with maxDepth 14 and canopy 8: need 14-8 = 6 proof nodes minimum
         // Strings are truncated above to fit within transaction size limit
         const maxProofNodes = 6; // Minimum needed for canopy depth 8
-        const limitedProof = assetWithProof.proof.slice(0, Math.min(maxProofNodes, assetWithProof.proof.length));
-        
-        console.log('🌳 Using proof length:', limitedProof.length, '(limited from', assetWithProof.proof.length, ')');
-        
-        const proofAccounts: AccountMeta[] = limitedProof.map((node: any) => ({
+        const limitedProof = assetWithProof.proof.slice(
+          0,
+          Math.min(maxProofNodes, assetWithProof.proof.length)
+        );
+
+        console.log(
+          '🌳 Using proof length:',
+          limitedProof.length,
+          '(limited from',
+          assetWithProof.proof.length,
+          ')'
+        );
+
+        const proofAccounts: AccountMeta[] = limitedProof.map((node: string) => ({
           pubkey: new PublicKey(node),
           isWritable: false,
           isSigner: false,
         }));
 
         console.log('🔧 Converting proof data...');
-        let rootArray, dataHashArray, creatorHashArray;
-        
+        let rootArray: number[];
+        let dataHashArray: number[];
+        let creatorHashArray: number[];
+
         console.log('Converting root: string value:', assetWithProof.root);
         console.log('Converting dataHash: string value:', assetWithProof.dataHash);
-        console.log('Converting creatorHash: string value:', assetWithProof.creatorHash);
-        
+        console.log(
+          'Converting creatorHash: string value:',
+          assetWithProof.creatorHash
+        );
+
         // The hash values are base58 encoded, not hex
         // Use PublicKey to decode base58 to bytes
         try {
           rootArray = Array.from(new PublicKey(assetWithProof.root).toBytes());
-          dataHashArray = Array.from(new PublicKey(assetWithProof.dataHash).toBytes());
-          creatorHashArray = Array.from(new PublicKey(assetWithProof.creatorHash).toBytes());
-          
+          dataHashArray = Array.from(
+            new PublicKey(assetWithProof.dataHash).toBytes()
+          );
+          creatorHashArray = Array.from(
+            new PublicKey(assetWithProof.creatorHash).toBytes()
+          );
+
           console.log('✅ Arrays converted:', {
             rootLength: rootArray.length,
             dataHashLength: dataHashArray.length,
@@ -309,12 +333,20 @@ export function useFractionalizeCNFT() {
           });
         } catch (err) {
           console.error('❌ Base58 decode error:', err);
-          throw new Error(`Failed to decode base58 hashes: ${err instanceof Error ? err.message : String(err)}`);
+          throw new Error(
+            `Failed to decode base58 hashes: ${err instanceof Error ? err.message : String(err)}`
+          );
         }
-        
+
         // Ensure arrays are exactly 32 bytes
-        if (rootArray.length !== 32 || dataHashArray.length !== 32 || creatorHashArray.length !== 32) {
-          throw new Error(`Invalid hash lengths: root=${rootArray.length}, dataHash=${dataHashArray.length}, creatorHash=${creatorHashArray.length}. Expected 32 bytes each.`);
+        if (
+          rootArray.length !== 32 ||
+          dataHashArray.length !== 32 ||
+          creatorHashArray.length !== 32
+        ) {
+          throw new Error(
+            `Invalid hash lengths: root=${rootArray.length}, dataHash=${dataHashArray.length}, creatorHash=${creatorHashArray.length}. Expected 32 bytes each.`
+          );
         }
 
         // Derive vault PDA
@@ -369,8 +401,18 @@ export function useFractionalizeCNFT() {
         console.log('🏦 Treasury token account:', treasuryTokenAccount.toBase58());
 
         // Build fractionalize instruction
-        // @ts-ignore - Anchor type instantiation depth
-        const fractionalizeIx = await program.methods
+        // Type assertion needed for dynamic Anchor program methods
+        type AnchorMethods = {
+          fractionalizeV1: (...args: unknown[]) => {
+            accounts: (accounts: Record<string, unknown>) => {
+              remainingAccounts: (accounts: AccountMeta[]) => {
+                instruction: () => Promise<anchor.web3.TransactionInstruction>;
+              };
+            };
+          };
+        };
+        
+        const fractionalizeIx = await ((program.methods as unknown) as AnchorMethods)
           .fractionalizeV1(
             totalSupplyBN,
             minLpAgeSeconds,
@@ -472,9 +514,11 @@ export function useFractionalizeCNFT() {
             assetId: params.assetId,
             treasury: treasury.publicKey.toBase58(),
           };
-        } catch (sendError: any) {
+        } catch (sendError) {
           // Check if the error is "already processed" - this means success!
-          if (sendError?.message?.includes('already been processed')) {
+          const errorMessage =
+            sendError instanceof Error ? sendError.message : String(sendError);
+          if (errorMessage.includes('already been processed')) {
             console.log('✅ Transaction was already processed (success!)');
             // Extract signature from the serialized transaction
             const signature = Buffer.from(signedTx.signatures[0]).toString('base64');
