@@ -12,7 +12,7 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useWallet } from "@/components/solana/solana-provider";
 import { useUserBalance } from '@/hooks/use-user-balance';
 
 interface VaultCardProps {
@@ -27,9 +27,8 @@ const statusColors: Record<VaultStatus, string> = {
 
 export function VaultCard({ vault }: VaultCardProps) {
   // Call hooks first (Rules of Hooks - must be at top level)
-  const { publicKey } = useWallet();
-  const walletAddress = publicKey?.toBase58();
-  const { data: balance } = useUserBalance(walletAddress, vault?.fractionalMint);
+  const { account } = useWallet();
+  const { data: balance } = useUserBalance(account?.address, vault?.fractionalMint);
   const router = useRouter();
 
   // Safety check: return null if vault data is invalid (after hooks)
@@ -92,7 +91,7 @@ export function VaultCard({ vault }: VaultCardProps) {
             <div className="w-full flex items-center justify-between gap-4">
             <div className="text-xs">
               <div>Created {new Date(vault.createdAt).toLocaleDateString()}</div>
-              {balance && publicKey ? (
+              {balance && account ? (
                 <div className="mt-1 text-sm">
                   <div className="text-muted-foreground">You</div>
                   <div className="font-medium">{balance.balance.toLocaleString()} tokens</div>

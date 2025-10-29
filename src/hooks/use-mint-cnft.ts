@@ -8,16 +8,8 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { useConnection, useWallet as useWalletAdapter } from '@solana/wallet-adapter-react';
-import { Connection } from '@solana/web3.js';
-import type { WalletContextState } from '@solana/wallet-adapter-react';
-import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
-import { mintV1, mplBubblegum } from '@metaplex-foundation/mpl-bubblegum';
-import {
-  publicKey as umiPublicKey,
-  none,
-} from '@metaplex-foundation/umi';
-import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
+import { useWallet } from '@/components/solana/solana-provider';
+// Mint functionality using Helius API
 
 interface MintCNFTParams {
   name: string;
@@ -61,72 +53,7 @@ function uploadMetadata(params: MintCNFTParams): string {
 }
 
 /**
- * Mint cNFT using pre-created Merkle tree
- * User signs and pays for the transaction (~0.001 SOL)
- */
-async function mintWithExistingTree(
-  params: MintCNFTParams,
-  connection: Connection,
-  walletAdapter: WalletContextState,
-): Promise<{ signature: string; assetId: string }> {
-  
-  const treeAddress = process.env.NEXT_PUBLIC_MERKLE_TREE_ADDRESS;
-  
-  if (!treeAddress) {
-    throw new Error('NEXT_PUBLIC_MERKLE_TREE_ADDRESS not configured. See TREE_SETUP_GUIDE.md');
-  }
-
-  // Get Helius RPC URL from server (keeps API key secure)
-  const rpcResponse = await fetch('/api/helius-rpc-url');
-  const { rpcUrl } = await rpcResponse.json();
-  
-  if (!rpcUrl) {
-    throw new Error('Failed to get Helius RPC URL from server');
-  }
-
-  const umi = createUmi(rpcUrl)
-    .use(mplBubblegum())
-    .use(walletAdapterIdentity(walletAdapter));
-
-  console.log('Using existing Merkle tree:', treeAddress);
-
-  // Upload metadata
-  const metadataUri = uploadMetadata(params);
-
-  // Mint compressed NFT to existing tree
-  console.log('Minting compressed NFT...');
-  
-  const leafOwner = umiPublicKey(walletAdapter.publicKey!.toBase58());
-  const merkleTree = umiPublicKey(treeAddress);
-  
-  const mintBuilder = mintV1(umi, {
-    leafOwner,
-    merkleTree,
-    metadata: {
-      name: params.name,
-      symbol: params.symbol,
-      uri: metadataUri,
-      sellerFeeBasisPoints: 500, // 5% royalty
-      collection: none(),
-      creators: [
-        {
-          address: leafOwner,
-          verified: false,
-          share: 100,
-        },
-      ],
-    },
-  });
-
-  const result = await mintBuilder.sendAndConfirm(umi);
-  
-  const signature = Buffer.from(result.signature).toString('base64');
-  
-  return { signature, assetId: 'pending-indexing' };
-}
-
-/**
- * Mint a compressed NFT using Helius Mint API (fallback)
+ * Mint a compressed NFT using Helius Mint API
  * This doesn't require wallet signature - Helius mints it for you
  */
 async function mintWithHeliusAPI(
@@ -191,54 +118,29 @@ async function mintWithHeliusAPI(
 }
 
 export const useMintCNFT = () => {
-  const walletAdapter = useWalletAdapter();
-  const { connection } = useConnection();
+  const { account, connected } = useWallet();
   const queryClient = useQueryClient();
-
-  // Check if we should use existing tree (user-paid) or Helius API
-  const useExistingTree = !!process.env.NEXT_PUBLIC_MERKLE_TREE_ADDRESS;
 
   return useMutation({
     mutationFn: async (params: MintCNFTParams) => {
       // Enhanced wallet connection check with detailed logging
       console.log('🔍 Wallet state:', {
-        connected: walletAdapter.connected,
-        connecting: walletAdapter.connecting,
-        publicKey: walletAdapter.publicKey?.toBase58(),
-        wallet: walletAdapter.wallet?.adapter?.name,
+        connected,
+        address: account?.address,
       });
 
-      if (!walletAdapter.connected) {
+      if (!connected || !account?.address) {
         throw new Error('Wallet not connected. Please connect your wallet first.');
       }
 
-      if (!walletAdapter.publicKey) {
-        throw new Error('Wallet public key not available. Please reconnect your wallet.');
-      }
-
-      if (useExistingTree) {
-        // Mode 1: Use existing tree with user wallet signing
-        if (!walletAdapter.signTransaction) {
-          throw new Error('Wallet does not support transaction signing');
-        }
-
-        console.log('🔐 Using existing tree - user will sign transaction');
-        return await mintWithExistingTree(params, connection, walletAdapter);
-      } else {
-        // Mode 2: Use Helius API (fallback)
-        console.log('⚡ Using Helius Mint API - no signature required');
-        return await mintWithHeliusAPI(
-          params,
-          walletAdapter.publicKey.toBase58()
-        );
-      }
+      // Use Helius API for minting (no signature required)
+      console.log('⚡ Using Helius Mint API - no signature required');
+      return await mintWithHeliusAPI(params, account.address);
     },
     onSuccess: (data) => {
       toast.success('🎉 cNFT Minted Successfully!', {
-        description: useExistingTree
-          ? 'You signed and paid for this transaction. Note: Using mock metadata URI for testing.'
-          : `Asset ID: ${data.assetId.substring(0, 8)}...`,
-        duration: useExistingTree ? 6000 : 5000,
+        description: `Asset ID: ${data.assetId.substring(0, 8)}...`,
+        duration: 5000,
       });
 
       // Wait for Helius indexing before refetching

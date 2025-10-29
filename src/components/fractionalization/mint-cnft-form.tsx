@@ -4,22 +4,20 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
-import { useWallet as useWalletAdapter } from '@solana/wallet-adapter-react';
-import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { useState } from 'react';
+import { useWallet } from '@/components/solana/solana-provider';
 import { useMintCNFT } from '@/hooks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Plus, Wallet } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 
 interface MintCNFTFormProps {
   onSuccess?: () => void;
 }
 
 export function MintCNFTForm({ onSuccess }: MintCNFTFormProps) {
-  const walletAdapter = useWalletAdapter();
-  const { setVisible } = useWalletModal();
+  const { connected } = useWallet();
   const mintCNFT = useMintCNFT();
   
   const [mintForm, setMintForm] = useState({
@@ -28,10 +26,6 @@ export function MintCNFTForm({ onSuccess }: MintCNFTFormProps) {
     description: '',
     imageUrl: '',
   });
-
-  const handleWalletConnect = useCallback(() => {
-    setVisible(true);
-  }, [setVisible]);
 
   const handleMintCNFT = async () => {
     if (!mintForm.name || !mintForm.symbol) {
@@ -61,22 +55,14 @@ export function MintCNFTForm({ onSuccess }: MintCNFTFormProps) {
 
   return (
     <div className="space-y-4 py-4">
-      {!walletAdapter.connected && (
+      {!connected && (
         <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
           <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-2">
             ⚠️ Wallet Connection Required
           </p>
           <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-3">
-            Please connect your wallet using Phantom or Solflare to mint cNFTs.
+            Please connect your wallet using the &quot;Select Wallet&quot; button in the header to mint cNFTs.
           </p>
-          <Button 
-            onClick={handleWalletConnect}
-            className="w-full gap-2"
-            variant="default"
-          >
-            <Wallet className="h-4 w-4" />
-            Connect Wallet
-          </Button>
         </div>
       )}
       <div className="space-y-2">
@@ -86,7 +72,7 @@ export function MintCNFTForm({ onSuccess }: MintCNFTFormProps) {
           placeholder="My Test cNFT"
           value={mintForm.name}
           onChange={(e) => setMintForm({ ...mintForm, name: e.target.value })}
-          disabled={!walletAdapter.connected}
+          disabled={!connected}
         />
       </div>
       <div className="space-y-2">
@@ -97,7 +83,7 @@ export function MintCNFTForm({ onSuccess }: MintCNFTFormProps) {
           value={mintForm.symbol}
           onChange={(e) => setMintForm({ ...mintForm, symbol: e.target.value.toUpperCase() })}
           maxLength={10}
-          disabled={!walletAdapter.connected}
+          disabled={!connected}
         />
       </div>
       <div className="space-y-2">
@@ -107,7 +93,7 @@ export function MintCNFTForm({ onSuccess }: MintCNFTFormProps) {
           placeholder="A test cNFT for fractionalization"
           value={mintForm.description}
           onChange={(e) => setMintForm({ ...mintForm, description: e.target.value })}
-          disabled={!walletAdapter.connected}
+          disabled={!connected}
         />
       </div>
       <div className="space-y-2">
@@ -118,13 +104,13 @@ export function MintCNFTForm({ onSuccess }: MintCNFTFormProps) {
           placeholder="https://example.com/image.png"
           value={mintForm.imageUrl}
           onChange={(e) => setMintForm({ ...mintForm, imageUrl: e.target.value })}
-          disabled={!walletAdapter.connected}
+          disabled={!connected}
         />
         <p className="text-xs text-muted-foreground">
           Direct link to an image (PNG, JPG, GIF, etc.)
         </p>
       </div>
-      {walletAdapter.connected && (
+      {connected && (
         <Button
           onClick={handleMintCNFT}
           disabled={!mintForm.name || !mintForm.symbol || mintCNFT.isPending}

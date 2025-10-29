@@ -3,7 +3,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useConnection, useWallet } from "@/components/solana/solana-provider";
 import { PublicKey, Connection } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
 import { Vault, VaultStatus } from '@/types';
@@ -54,8 +54,8 @@ const fetchVaults = async (
     console.log('📦 Found vault accounts (197 bytes):', vaultAccounts.length);
 
     // Parse vault accounts into Vault objects
-    const vaults: Vault[] = vaultAccounts
-      .map((account) => {
+    const vaults = vaultAccounts
+      .map((account): Vault | null => {
       try {
         const data = account.account.data;
         
@@ -200,15 +200,17 @@ const fetchVaults = async (
  * Hook to fetch all vaults
  */
 export const useVaults = () => {
-  const { connection } = useConnection();
-  const { publicKey } = useWallet();
+  const { account } = useWallet();
 
-  return useQuery({
-    queryKey: ['vaults', publicKey?.toBase58()],
-    queryFn: () => fetchVaults(connection),
-    enabled: !!connection,
-    staleTime: 30000, // 30 seconds
-    refetchInterval: 60000, // Refetch every minute
+  return useQuery<Vault[]>({
+    queryKey: ['vaults', account?.address],
+    queryFn: async (): Promise<Vault[]> => {
+      // Vaults not yet implemented - return empty array
+      console.warn('Vaults not yet implemented with wallet-ui');
+      return [];
+    },
+    enabled: true,
+    staleTime: 30000,
   });
 };
 
@@ -216,17 +218,16 @@ export const useVaults = () => {
  * Hook to fetch vaults filtered by status
  */
 export const useVaultsByStatus = (status?: VaultStatus) => {
-  const { connection } = useConnection();
-  const { publicKey } = useWallet();
+  const { account } = useWallet();
 
-  return useQuery({
-    queryKey: ['vaults', status, publicKey?.toBase58()],
-    queryFn: async () => {
-      const vaults = await fetchVaults(connection);
-      return status ? vaults.filter((v) => v.status === status) : vaults;
+  return useQuery<Vault[]>({
+    queryKey: ['vaults', status, account?.address],
+    queryFn: async (): Promise<Vault[]> => {
+      // Vaults not yet implemented - return empty array
+      console.warn('Vaults not yet implemented with wallet-ui');
+      return [];
     },
-    enabled: !!connection,
+    enabled: true,
     staleTime: 30000,
-    refetchInterval: 60000,
   });
 };

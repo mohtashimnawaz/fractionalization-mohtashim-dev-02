@@ -5,7 +5,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useWallet } from "@/components/solana/solana-provider";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -58,11 +58,10 @@ const statusColors = {
 };
 
 export function RedemptionHistory() {
-  const { publicKey } = useWallet();
-  const walletAddress = publicKey?.toBase58();
+  const { account } = useWallet();
   const [redemptions] = useState<RedemptionRequest[]>(mockRedemptions);
 
-  if (!publicKey) {
+  if (!account) {
     return (
       <Card className="max-w-6xl mx-auto">
         <CardContent className="pt-6">

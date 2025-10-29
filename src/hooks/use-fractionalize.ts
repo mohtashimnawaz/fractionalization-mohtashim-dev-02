@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { PublicKey } from '@solana/web3.js';
 import { getAssetProof, proofToAccounts } from '@/lib/helius';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useWallet } from "@/components/solana/solana-provider";
 
 interface FractionalizeParams {
   nftMint: string; // cNFT asset ID
@@ -113,7 +113,7 @@ export const useFractionalize = () => {
 
   return useMutation({
     mutationFn: async (params: FractionalizeParams) => {
-      if (!wallet.publicKey) {
+      if (!wallet.account?.address) {
         throw new Error('Wallet not connected');
       }
 
