@@ -18,17 +18,20 @@ interface WalletAdapterProviderProps {
  * Used alongside wallet-ui for Metaplex Bubblegum operations
  */
 export function WalletAdapterProvider({ children }: WalletAdapterProviderProps) {
-  // Get Helius RPC endpoint from environment
-  const endpoint = useMemo(() => {
-    const apiKey = process.env.NEXT_PUBLIC_HELIUS_API_KEY;
-    const network = process.env.NEXT_PUBLIC_SOLANA_NETWORK || 'devnet';
-    
-    if (apiKey) {
-      return `https://${network}.helius-rpc.com/?api-key=${apiKey}`;
-    }
-    
-    // Fallback to public devnet
-    return 'https://api.devnet.solana.com';
+  // Get Helius RPC endpoint from server (keeps API key secure)
+  const [endpoint, setEndpoint] = React.useState('https://api.devnet.solana.com');
+
+  React.useEffect(() => {
+    fetch('/api/helius-rpc-url')
+      .then(res => res.json())
+      .then(data => {
+        if (data.rpcUrl) {
+          setEndpoint(data.rpcUrl);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch Helius RPC URL, using public endpoint:', err);
+      });
   }, []);
 
   // Configure wallet adapters

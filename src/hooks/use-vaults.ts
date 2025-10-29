@@ -152,10 +152,8 @@ const fetchVaults = async (connection: any, walletPubkey?: PublicKey): Promise<V
     const vaultsWithMetadata = await Promise.all(
       vaults.map(async (vault) => {
         try {
-          // Fetch cNFT metadata from Helius
-          const heliusUrl = `https://devnet.helius-rpc.com/?api-key=${process.env.NEXT_PUBLIC_HELIUS_API_KEY}`;
-          
-          const response = await fetch(heliusUrl, {
+          // Fetch cNFT metadata from Helius via API proxy
+          const response = await fetch('/api/helius', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

@@ -106,28 +106,17 @@ export function useFractionalizeCNFT() {
         throw new Error('NEXT_PUBLIC_FRACTIONALIZATION_PROGRAM_ID not configured');
       }
 
-      const heliusApiKey = process.env.NEXT_PUBLIC_HELIUS_API_KEY;
-      if (!heliusApiKey) {
-        throw new Error('NEXT_PUBLIC_HELIUS_API_KEY not configured');
-      }
-
       console.log('🎯 Starting fractionalization...', params);
 
-      // Initialize UMI with required plugins
-      const umi = createUmi(`https://devnet.helius-rpc.com/?api-key=${heliusApiKey}`)
-        .use(walletAdapterIdentity(wallet))
-        .use(mplBubblegum())
-        .use(dasApi());
-
-      // Fetch asset and proof data using direct Helius RPC calls
-      console.log('📡 Fetching asset with proof via Helius...', { assetId: params.assetId });
+      // Fetch asset and proof data using API proxy (keeps API key secure)
+      console.log('📡 Fetching asset with proof via API proxy...', { assetId: params.assetId });
       
       try {
-        const heliusRpcUrl = `https://devnet.helius-rpc.com/?api-key=${heliusApiKey}`;
+        const heliusApiProxy = '/api/helius';
         
-        // Fetch asset proof via Helius RPC
-        console.log('📡 Calling Helius getAssetProof...');
-        const proofResponse = await fetch(heliusRpcUrl, {
+        // Fetch asset proof via API proxy
+        console.log('📡 Calling getAssetProof...');
+        const proofResponse = await fetch(heliusApiProxy, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -146,9 +135,9 @@ export function useFractionalizeCNFT() {
         const assetProofData = proofResult.result;
         console.log('✅ Got asset proof:', assetProofData);
         
-        // Fetch asset data via Helius RPC
-        console.log('📡 Calling Helius getAsset...');
-        const assetResponse = await fetch(heliusRpcUrl, {
+        // Fetch asset data via API proxy
+        console.log('📡 Calling getAsset...');
+        const assetResponse = await fetch(heliusApiProxy, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

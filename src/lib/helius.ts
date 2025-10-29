@@ -2,6 +2,8 @@
  * Helius DAS (Digital Asset Standard) API Client
  * Documentation: https://docs.helius.dev/compression-and-das-api/digital-asset-standard-das-api
  * 
+ * ⚠️ SECURITY: API key is kept server-side only via /api/helius proxy
+ * 
  * ⚠️ IMPORTANT: This requires REAL compressed NFTs on Solana devnet.
  * 
  * Mock NFTs will NOT work because:
@@ -11,7 +13,7 @@
  * 
  * You MUST:
  * 1. Create a real cNFT on Solana devnet
- * 2. Add NEXT_PUBLIC_HELIUS_API_KEY to .env.local
+ * 2. Add HELIUS_API_KEY to .env (server-side only)
  * 3. Connect wallet that owns the cNFT
  * 
  * See CNFT_SETUP.md for instructions.
@@ -19,18 +21,8 @@
 
 import { PublicKey } from '@solana/web3.js';
 
-// Helius API configuration
-const HELIUS_API_KEY = process.env.NEXT_PUBLIC_HELIUS_API_KEY || '';
-const HELIUS_RPC_URL = `https://devnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
-
-if (!HELIUS_API_KEY) {
-  console.warn(
-    '⚠️ NEXT_PUBLIC_HELIUS_API_KEY not set. Please add it to .env.local'
-  );
-} else {
-  console.log('✅ Helius API key loaded:', HELIUS_API_KEY.substring(0, 8) + '...' + HELIUS_API_KEY.substring(HELIUS_API_KEY.length - 4));
-  console.log('📡 Helius RPC URL configured');
-}
+// Helius API configuration - proxied through Next.js API route to keep key secure
+const HELIUS_API_PROXY = '/api/helius';
 
 /**
  * Compressed NFT metadata structure from Helius DAS API
@@ -136,17 +128,11 @@ export interface CompressedNFT {
 }
 
 /**
- * Call Helius DAS API
+ * Call Helius DAS API via Next.js API proxy (keeps API key secure on server)
  */
 async function callDASApi<T>(method: string, params: unknown): Promise<T> {
-  if (!HELIUS_API_KEY) {
-    throw new Error(
-      'Helius API key not configured. Please add NEXT_PUBLIC_HELIUS_API_KEY to .env.local'
-    );
-  }
-
   try {
-    const response = await fetch(HELIUS_RPC_URL, {
+    const response = await fetch(HELIUS_API_PROXY, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -172,10 +158,8 @@ async function callDASApi<T>(method: string, params: unknown): Promise<T> {
     return data.result;
   } catch (error) {
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      console.error('❌ Network error connecting to Helius API');
-      console.error('   URL:', HELIUS_RPC_URL.replace(HELIUS_API_KEY, '***'));
-      console.error('   This might be a CORS issue, network problem, or invalid API key');
-      throw new Error('Failed to connect to Helius API. Check your internet connection and API key.');
+      console.error('❌ Network error connecting to Helius API proxy');
+      throw new Error('Failed to connect to Helius API. Check your server configuration.');
     }
     throw error;
   }
@@ -267,8 +251,13 @@ export function proofToAccounts(proof: AssetProof): PublicKey[] {
 }
 
 /**
- * Get Helius RPC endpoint URL
+ * Get Helius RPC endpoint URL (for direct RPC calls, not DAS API)
+ * Note: This still requires HELIUS_API_KEY to be available server-side
  */
 export function getHeliusRpcUrl(): string {
-  return HELIUS_RPC_URL;
+  const apiKey = process.env.HELIUS_API_KEY;
+  if (!apiKey) {
+    throw new Error('HELIUS_API_KEY not configured on server');
+  }
+  return `https://devnet.helius-rpc.com/?api-key=${apiKey}`;
 }
