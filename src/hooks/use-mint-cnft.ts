@@ -8,8 +8,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { useConnection } from '@solana/wallet-adapter-react';
-import { useWallet as useWalletAdapter } from '@solana/wallet-adapter-react';
+import { useConnection, useWallet as useWalletAdapter } from '@solana/wallet-adapter-react';
 import { Connection } from '@solana/web3.js';
 import type { WalletContextState } from '@solana/wallet-adapter-react';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
@@ -201,12 +200,24 @@ export const useMintCNFT = () => {
 
   return useMutation({
     mutationFn: async (params: MintCNFTParams) => {
+      // Enhanced wallet connection check with detailed logging
+      console.log('🔍 Wallet state:', {
+        connected: walletAdapter.connected,
+        connecting: walletAdapter.connecting,
+        publicKey: walletAdapter.publicKey?.toBase58(),
+        wallet: walletAdapter.wallet?.adapter?.name,
+      });
+
+      if (!walletAdapter.connected) {
+        throw new Error('Wallet not connected. Please connect your wallet first.');
+      }
+
+      if (!walletAdapter.publicKey) {
+        throw new Error('Wallet public key not available. Please reconnect your wallet.');
+      }
+
       if (useExistingTree) {
         // Mode 1: Use existing tree with user wallet signing
-        if (!walletAdapter.publicKey) {
-          throw new Error('Wallet not connected');
-        }
-
         if (!walletAdapter.signTransaction) {
           throw new Error('Wallet does not support transaction signing');
         }
@@ -215,10 +226,6 @@ export const useMintCNFT = () => {
         return await mintWithExistingTree(params, connection, walletAdapter);
       } else {
         // Mode 2: Use Helius API (fallback)
-        if (!walletAdapter.publicKey) {
-          throw new Error('Wallet not connected');
-        }
-
         console.log('⚡ Using Helius Mint API - no signature required');
         return await mintWithHeliusAPI(
           params,

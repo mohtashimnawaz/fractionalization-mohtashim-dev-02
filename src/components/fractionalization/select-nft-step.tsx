@@ -6,52 +6,31 @@
 'use client';
 
 import { useState } from 'react';
-import { useUserCNFTs, useMintCNFT } from '@/hooks';
+import { useUserCNFTs } from '@/hooks';
 import { useWallet } from '@/components/solana/solana-provider';
 import { useFractionalizationStore } from '@/stores';
 import { FractionalizationStep } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Loader2, RefreshCw, Plus } from 'lucide-react';
 import Image from 'next/image';
+import { MintCNFTForm } from './mint-cnft-form';
 
 export function SelectNFTStep() {
   const { account } = useWallet();
   const { data: nfts, isLoading, error, refetch } = useUserCNFTs(account?.address);
   const { formData, updateFormData, setStep } = useFractionalizationStore();
-  const mintCNFT = useMintCNFT();
   
   const [isMintDialogOpen, setIsMintDialogOpen] = useState(false);
-  const [mintForm, setMintForm] = useState({
-    name: '',
-    symbol: '',
-    description: '',
-    imageUrl: '',
-  });
 
   const handleSelectNFT = (nftMint: string) => {
     updateFormData({ nftMint });
     setStep(FractionalizationStep.ConfigureTokens);
   };
 
-  const handleMintCNFT = async () => {
-    if (!mintForm.name || !mintForm.symbol) {
-      return;
-    }
-
-    await mintCNFT.mutateAsync({
-      name: mintForm.name,
-      symbol: mintForm.symbol,
-      description: mintForm.description || undefined,
-      imageUrl: mintForm.imageUrl || undefined,
-    });
-
-    // Reset form and close dialog
-    setMintForm({ name: '', symbol: '', description: '', imageUrl: '' });
+  const handleMintSuccess = () => {
     setIsMintDialogOpen(false);
     
     // Refetch after a delay for Helius indexing
@@ -125,69 +104,7 @@ export function SelectNFTStep() {
                   Create a test compressed NFT on Solana Devnet
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="nft-name">Name *</Label>
-                  <Input
-                    id="nft-name"
-                    placeholder="My Test cNFT"
-                    value={mintForm.name}
-                    onChange={(e) => setMintForm({ ...mintForm, name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nft-symbol">Symbol *</Label>
-                  <Input
-                    id="nft-symbol"
-                    placeholder="TEST"
-                    value={mintForm.symbol}
-                    onChange={(e) => setMintForm({ ...mintForm, symbol: e.target.value.toUpperCase() })}
-                    maxLength={10}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nft-description">Description (Optional)</Label>
-                  <Input
-                    id="nft-description"
-                    placeholder="A test cNFT for fractionalization"
-                    value={mintForm.description}
-                    onChange={(e) => setMintForm({ ...mintForm, description: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nft-image">Image URL (Optional)</Label>
-                  <Input
-                    id="nft-image"
-                    type="url"
-                    placeholder="https://example.com/image.png"
-                    value={mintForm.imageUrl}
-                    onChange={(e) => setMintForm({ ...mintForm, imageUrl: e.target.value })}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Direct link to an image (PNG, JPG, GIF, etc.)
-                  </p>
-                </div>
-                <Button
-                  onClick={handleMintCNFT}
-                  disabled={!mintForm.name || !mintForm.symbol || mintCNFT.isPending}
-                  className="w-full"
-                >
-                  {mintCNFT.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Minting...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Mint cNFT
-                    </>
-                  )}
-                </Button>
-                <p className="text-xs text-muted-foreground text-center">
-                  This will create a compressed NFT on Solana Devnet using Helius API
-                </p>
-              </div>
+              <MintCNFTForm onSuccess={handleMintSuccess} />
             </DialogContent>
           </Dialog>
           <Button onClick={() => refetch()} variant="outline">
@@ -254,75 +171,9 @@ export function SelectNFTStep() {
                   Create a test compressed NFT on Solana Devnet
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="nft-name">Name *</Label>
-                  <Input
-                    id="nft-name"
-                    placeholder="My Test cNFT"
-                    value={mintForm.name}
-                    onChange={(e) => setMintForm({ ...mintForm, name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nft-symbol">Symbol *</Label>
-                  <Input
-                    id="nft-symbol"
-                    placeholder="TEST"
-                    value={mintForm.symbol}
-                    onChange={(e) => setMintForm({ ...mintForm, symbol: e.target.value.toUpperCase() })}
-                    maxLength={10}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nft-description">Description (Optional)</Label>
-                  <Input
-                    id="nft-description"
-                    placeholder="A test cNFT for fractionalization"
-                    value={mintForm.description}
-                    onChange={(e) => setMintForm({ ...mintForm, description: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nft-image">Image URL (Optional)</Label>
-                  <Input
-                    id="nft-image"
-                    type="url"
-                    placeholder="https://example.com/image.png"
-                    value={mintForm.imageUrl}
-                    onChange={(e) => setMintForm({ ...mintForm, imageUrl: e.target.value })}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Direct link to an image (PNG, JPG, GIF, etc.)
-                  </p>
-                </div>
-                <Button
-                  onClick={handleMintCNFT}
-                  disabled={!mintForm.name || !mintForm.symbol || mintCNFT.isPending}
-                  className="w-full"
-                >
-                  {mintCNFT.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Minting...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Mint cNFT
-                    </>
-                  )}
-                </Button>
-                <p className="text-xs text-muted-foreground text-center">
-                  This will create a compressed NFT on Solana Devnet using Helius API
-                </p>
-              </div>
+              <MintCNFTForm onSuccess={handleMintSuccess} />
             </DialogContent>
           </Dialog>
-          <Button onClick={() => refetch()} variant="ghost" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
         </div>
       </div>
       
